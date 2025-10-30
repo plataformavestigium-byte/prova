@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marcador de Minúcias — v1.16</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: white;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background-color: #1f1f1f;
+      border-bottom: 1px solid #333;
+    }
+    header h1 {
+      font-size: 1.1rem;
+      color: #00bcd4;
+    }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+    }
+    .toolbar button {
+      background-color: #2a2a2a;
+      color: white;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .toolbar button:hover {
+      background-color: #333;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: calc(100vh - 50px);
+    }
+    .panel {
+      position: relative;
+      overflow: hidden;
+    }
+    .panel img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 🔒 Proteção de domínio -->
+  <script>
+    (function() {
+      const allowedDomain = "vestigiumplataforma.getmembox.com";
+      const currentHost = window.location.hostname;
+      const referrer = document.referrer;
+      const insideAllowed =
+        currentHost.includes(allowedDomain) || referrer.includes(allowedDomain);
+
+      if (!insideAllowed) {
+        document.documentElement.innerHTML = "";
+        window.stop();
+      }
+    })();
+  </script>
+
+  <header>
+    <h1>Marcador de Minúcias — v1.16</h1>
+    <div class="toolbar">
+      <button id="rotateLeft">↺ Rotacionar Esq</button>
+      <button id="rotateRight">↻ Rotacionar Dir</button>
+      <button id="zoomIn">＋ Zoom +</button>
+      <button id="zoomOut">－ Zoom -</button>
+      <button id="reset">Reset</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="panel">
+      <img id="imgLeft" alt="Imagem Questionada" />
+    </div>
+    <div class="panel">
+      <img id="imgRight" alt="Imagem Padrão" />
+    </div>
+  </main>
+
+  <script>
+    const imgLeft = document.getElementById("imgLeft");
+    const imgRight = document.getElementById("imgRight");
+    let rotationLeft = 0;
+    let rotationRight = 0;
+    let zoomLevel = 1;
+
+    document.getElementById("rotateLeft").addEventListener("click", () => {
+      rotationLeft -= 90;
+      imgLeft.style.transform = `rotate(${rotationLeft}deg) scale(${zoomLevel})`;
+    });
+
+    document.getElementById("rotateRight").addEventListener("click", () => {
+      rotationRight += 90;
+      imgRight.style.transform = `rotate(${rotationRight}deg) scale(${zoomLevel})`;
+    });
+
+    document.getElementById("zoomIn").addEventListener("click", () => {
+      zoomLevel += 0.1;
+      imgLeft.style.transform = `rotate(${rotationLeft}deg) scale(${zoomLevel})`;
+      imgRight.style.transform = `rotate(${rotationRight}deg) scale(${zoomLevel})`;
+    });
+
+    document.getElementById("zoomOut").addEventListener("click", () => {
+      zoomLevel = Math.max(0.1, zoomLevel - 0.1);
+      imgLeft.style.transform = `rotate(${rotationLeft}deg) scale(${zoomLevel})`;
+      imgRight.style.transform = `rotate(${rotationRight}deg) scale(${zoomLevel})`;
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      rotationLeft = 0;
+      rotationRight = 0;
+      zoomLevel = 1;
+      imgLeft.style.transform = `none`;
+      imgRight.style.transform = `none`;
+    });
+  </script>
+</body>
+</html>
