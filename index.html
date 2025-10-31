@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Marcador de Minúcias — v1.16</title>
   <style>
-    :root{ --view-w:980px; --view-h:880px; --centerline:50px; --frame:20px; --bg:#1b1b1b; --tx:#eee; --panel:#2f2f2f; --bdr:#505050; --hover:#3a3a3a; --radius:10px; --pin-red:#FF3B30; --pin-blue:#2F80FF; --pin-gold:#FFD23F; --pin-border:#1a1a1a; --num-white:#fff; --num-black:#111; --tracker:#FFA800; --stage-bg:#0e0e0e; --gold:#DAA520; --neon:#39FF14; }
+    :root{ --view-w:980px; --view-h:880px; --centerline:50px; --frame:20px; --bg:#1b1b1b; --tx:#eee; --panel:#2f2f2f; --bdr:#505050; --hover:#3a3a3a; --radius:10px; --pin-red:#FF3B30; --pin-blue:#2F80FF; --pin-gold:#FFD23F; --pin-border:#1a1a1a pessim; --num-white:#fff; --num-black:#111; --tracker:#FFA800; --stage-bg:#0e0e0e; --gold:#DAA520; --neon:#39FF14; }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial}
     .header{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #222;background:#141414}
@@ -94,7 +94,7 @@
   <div class="wrap">
     <div class="controls">
       <div class="row">
-        <input id="markerName" class="white" type="text" placeholder="Nome do Vestígio" title="Nome-base para exportações" />
+        <input id="markerName" class="white" type="text" placeholder="Nome do Vestígio" />
         <button id="btnPaste" class="big-primary">COLAR PRINT</button>
         <div class="spacer"></div>
         <button id="btnAxes">Tracker</button>
@@ -159,7 +159,7 @@
           <div id="left" class="side"><div id="vpL" class="viewport"><div id="layerL" class="layer"><canvas id="cvL"></canvas><canvas id="invL" class="overlayCanvas"></canvas><div id="pinsL" class="pins"></div></div></div></div>
           <div id="right" class="side"><div id="vpR" class="viewport"><div id="layerR" class="layer"><canvas id="cvR"></canvas><canvas id="invR" class="overlayCanvas"></canvas><div id="pinsR" class="pins"></div></div></div></div>
           <div id="centerLine"></div>
-          <div id="legend"><div class="content" id="legendContent"></div></div>
+          <div id="legend"><33<div class="content" id="legendContent"></div></div>
         </div>
       </div>
     </div>
@@ -170,7 +170,6 @@
   <input id="fileLeft" type="file" accept="image/*" style="position:absolute;left:-9999px">
   <input id="fileRight" type="file" accept="image/*" style="position:absolute;left:-9999px">
 
-  <!-- SCRIPT PRINCIPAL -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // === ELEMENTOS ===
@@ -185,7 +184,7 @@
       const sides = {left, right};
       let pinsHidden = false, currentSize = 'medium', currentType = 'common', mode = null, lockActive = false;
       const pinHistory = []; let allowDrops = true, axesOn = true, axesSize = 'medium';
-      let isMouseInsideStage = false;
+      let isMouseInsideStage = false, isDragging = false, dragStart = {x:0,y:0};
 
       const btnPaste = document.getElementById('btnPaste');
       const fileLeft = document.getElementById('fileLeft');
@@ -269,21 +268,144 @@
       }
       initSideBlack(left); initSideBlack(right); updateLabels();
 
-      // === ZOOM CONGELADO ===
-      const BASE_DPR = window.devicePixelRatio || 1;
-      function getPageZoom() {
-        return window.visualViewport?.scale || (window.devicePixelRatio / BASE_DPR);
+      // === ZOOM & PAN ===
+      function handleWheel(e, s) {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        const rect = s.vp.getBoundingClientRect();
+        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        const cx = s.imgW / 2, cy = s.imgH / 2;
+        const wx = (mx - s.tx - cx) / s.scale;
+        const wy = (my - s.ty - cy) / s.scale;
+        s.scale *= delta;
+        s.scale = clamp(s.scale, 0.1, 10);
+        s.tx = mx - cx - wx * s.scale;
+        s.ty = my - cy - wy * s.scale;
+        applyTransform(s);
       }
-      function freezeCanvasTo100() {
-        const zoom = getPageZoom();
-        const inv = 1 / zoom;
-        stageFreeze.style.transform = `scale(${inv})`;
-        stageFreeze.style.width = Math.round(stage.offsetWidth * zoom) + 'px';
-        stageFreeze.style.height = Math.round(stage.offsetHeight * zoom) + 'px';
+
+      function startDrag(e, s) {
+        if (lockActive) return;
+        isDragging = true;
+        s.vp.classList.add('drag');
+        const rect = s.vp.getBoundingClientRect();
+        dragStart.x = e.clientX - rect.left - s.tx;
+        dragStart.y = e.clientY - rect.top - s.ty;
       }
-      freezeCanvasTo100();
-      window.visualViewport?.addEventListener('resize', freezeCanvasTo100);
-      window.addEventListener('resize', freezeCanvasTo100);
+
+      function doDrag(e, s) {
+        if (!isDragging) return;
+        const rect = s.vp.getBoundingClientRect();
+        s.tx = e.clientX - rect.left - dragStart.x;
+        s.ty = e.clientY - rect.top - dragStart.y;
+        applyTransform(s);
+      }
+
+      function endDrag() {
+        isDragging = false;
+        left.vp.classList.remove('drag');
+        right.vp.classList.remove('drag');
+      }
+
+      [left, right].forEach(s => {
+        s.vp.addEventListener('wheel', e => handleWheel(e, s), {passive: false});
+        s.vp.addEventListener('mousedown', e => { if (e.button === 0) startDrag(e, s); });
+      });
+      document.addEventListener('mousemove', e => {
+        if (isDragging) {
+          const vp = e.target.closest('.viewport');
+          if (vp) {
+            const side = vp.id === 'vpL' ? left : right;
+            doDrag(e, side);
+          }
+        }
+      });
+      document.addEventListener('mouseup', endDrag);
+
+      // === ROTAÇÃO ===
+      rotateSliderL.addEventListener('input', () => {
+        left.rot = deg2rad(rotateSliderL.value);
+        rotateValL.textContent = rotateSliderL.value + '°';
+        applyTransform(left);
+      });
+      rotateSliderR.addEventListener('input', () => {
+        right.rot = deg2rad(rotateSliderR.value);
+        rotateValR.textContent = rotateSliderR.value + '°';
+        applyTransform(right);
+      });
+
+      // === PINS ===
+      function getPinSize() {
+        return sizeSel.value === 'large' ? 26 : sizeSel.value === 'small' ? 14 : 20;
+      }
+
+      function createPin(s, x, y, type) {
+        const pin = document.createElement('div');
+        pin.className = `pin ${type} ${currentSize}`;
+        pin.style.left = x + 'px';
+        pin.style.top = y + 'px';
+        pin.textContent = s.pins.length + 1;
+        pin.dataset.type = type;
+        s.pinsLayer.appendChild(pin);
+        s.pins.push(pin);
+        pinHistory.push({side: s.name, pin});
+        updateCounters();
+        updateLegend();
+      }
+
+      function handleClick(e, s) {
+        if (mode !== 'pin' || lockActive) return;
+        const rect = s.vp.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        createPin(s, x, y, currentType);
+      }
+
+      [left, right].forEach(s => s.vp.addEventListener('click', e => handleClick(e, s)));
+
+      function refreshPinsScale(s) {
+        const f = lockActive ? (1 / s.scale) : 1;
+        s.pins.forEach(p => p.style.transform = `translate(-50%,-50%) rotate(${-s.rot}rad) scale(${f})`);
+      }
+
+      // === MODOS ===
+      function setMode(m, type = null) {
+        mode = m;
+        document.body.className = m ? `mode-${m}` : '';
+        if (type) currentType = type;
+        clearGold();
+        if (type) document.getElementById(`btn${type.charAt(0).toUpperCase()}`).classList.add('gold-active');
+      }
+
+      btnC.addEventListener('click', () => setMode('pin', 'common'));
+      btnI.addEventListener('click', () => setMode('pin', 'incommon'));
+      btnR.addEventListener('click', () => setMode('pin', 'rare'));
+      sizeSel.addEventListener('change', () => currentSize = sizeSel.value);
+
+      // === DESFAZER ===
+      btnUndo.addEventListener('click', () => {
+        const last = pinHistory.pop();
+        if (last) {
+          const s = last.side === 'left' ? left : right;
+          s.pinsLayer.removeChild(last.pin);
+          s.pins.pop();
+          updateCounters();
+          updateLegend();
+        }
+      });
+
+      // === EXPORTAR ===
+      btnExport.addEventListener('click', async () => {
+        const name = markerName.value || 'vestigio';
+        for (const s of [left, right]) {
+          const canvas = await html2canvas(s.layer);
+          const link = document.createElement('a');
+          link.download = `${name}_${s.name}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+        }
+      });
 
       // === UI LOCK & TRACKER ===
       function updateLockUI() {
@@ -402,24 +524,29 @@
       }
       enableDnDForSide(left); enableDnDForSide(right);
 
-      // === PINS & MODES (simplificado) ===
-      function refreshPinsScale(s) {
-        const f = lockActive ? (1 / s.scale) : 1;
-        s.pins.forEach(p => p.style.transform = `translate(-50%,-50%) rotate(${-s.rot}rad) scale(${f})`);
+      // === CONTADORES & LEGENDA ===
+      function updateCounters() {
+        countC.textContent = Math.min(left.pins.filter(p=>p.dataset.type==='common').length, right.pins.filter(p=>p.dataset.type==='common').length);
+        countI.textContent = Math.min(left.pins.filter(p=>p.dataset.type==='incommon').length, right.pins.filter(p=>p.dataset.type==='incommon').length);
+        countR.textContent = Math.min(left.pins.filter(p=>p.dataset.type==='rare').length, right.pins.filter(p=>p.dataset.type==='rare').length);
       }
 
-      function setMode(m, type = null) {
-        mode = m;
-        document.body.className = m ? `mode-${m}` : '';
-        if (type) currentType = type;
-        clearGold();
-        if (type) document.querySelector(`#btn${type.charAt(0).toUpperCase()}`).classList.add('gold-active');
+      function updateLegend() {
+        const anyI = left.pins.some(p=>p.dataset.type==='incommon') || right.pins.some(p=>p.dataset.type==='incommon');
+        const anyR = left.pins.some(p=>p.dataset.type==='rare') || right.pins.some(p=>p.dataset.type==='rare');
+        legend.style.display = anyI || anyR ? 'block' : 'none';
+        legendContent.innerHTML = '<span class="leg-title">Legenda:</span>';
+        if (anyI) legendContent.innerHTML += '<i class="leg-dot leg-i"></i> minúcia incomum';
+        if (anyI && anyR) legendContent.innerHTML += '<span class="leg-sep"></span>';
+        if (anyR) legendContent.innerHTML += '<i class="leg-dot leg-r"></i> minúcia rara';
       }
 
       // === INICIALIZAÇÃO ===
       setLock(false);
       updateLockUI();
       applyAxisThickness();
+      updateLegend();
+      updateCounters();
     });
   </script>
 
