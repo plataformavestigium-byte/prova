@@ -1,1215 +1,251 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<title>Marcador de Minúcias — v1.16</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plataforma Vestigium</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --view-w:980px; 
-    --view-h:880px;
-    --centerline:50px; /* min 50, max 80 */
-    --frame:20px;
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    --bg:#1b1b1b; --tx:#eee;
-    --panel:#2f2f2f; --bdr:#505050; --hover:#3a3a3a; --radius:10px;
-
-    /* Paleta (como no Guia) */
-    --pin-red:#FF3B30;   /* comum */
-    --pin-blue:#2F80FF;  /* incomum */
-    --pin-gold:#FFD23F;  /* rara */
-    --pin-border:#1a1a1a;
-
-    --num-white:#fff;
-    --num-black:#111;
-
-    /* Tracker (laranja vibrante) */
-    --tracker:#FFA800;
-
-    --stage-bg:#0e0e0e;
-    --gold:#DAA520;
-    --neon:#39FF14; /* highlight pareado */
-
-    /* Novos pins */
-    --pin-neon: #39FF14;
+  :root {
+    --green: #00ff88;
+    --green-dim: #00cc66;
+    --green-glow: rgba(0, 255, 136, 0.15);
+    --green-faint: rgba(0, 255, 136, 0.04);
+    --bg: #000000;
   }
 
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial}
-  .header{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #222;background:#141414}
-  .header h1{font-size:18px;margin:0;display:flex;align-items:center;gap:12px}
-  .wrap{max-width:calc(2*var(--view-w) + 260px);margin:0 auto;padding:18px}
-
-  .controls{
-    background:var(--panel);border:1px solid var(--bdr);border-radius:var(--radius);
-    padding:12px;display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px
-  }
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .row.center{justify-content:center}
-  .row .spacer{flex:1 1 auto}
-
-  button, select, input[type="range"]{
-    height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bdr);
-    background:var(--panel);color:#fff;cursor:pointer
-  }
-  input[type="range"]{padding:0 6px;height:26px;accent-color:#cfcfcf;background:transparent;cursor:pointer}
-  label.slider{font-size:.92rem;font-weight:700;opacity:.9;margin-right:6px}
-  button:hover, select:hover{background:var(--hover)}
-  button:disabled, select:disabled{opacity:.45; filter:grayscale(.2); cursor:not-allowed}
-  .btn-reset{background:#fff;color:#111;border-color:#ddd}
-  .btn-reset:hover{background:#f1f1f1}
-  .btn-wipe{background:#b00020;border-color:#b00020}
-  .btn-wipe:hover{background:#c0182b}
-  #btnLock.locked{background:#eee;color:#111;border-color:#ddd}
-  .big-primary{min-width:180px;height:36px;border-radius:10px;font-size:14px}
-
-  .gold-active{ box-shadow:0 0 0 2px var(--gold), 0 0 12px rgba(218,165,32,.55); border-color:var(--gold)!important; }
-  .axes-on{ background:var(--tracker) !important; border-color:var(--tracker) !important; color:#111 !important; }
-
-  .pin-tool{width:38px;height:36px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
-  .pin-tool.active.common{background:var(--pin-red);color:#fff;border-color:var(--pin-border)}
-  .pin-tool.active.incommon{background:var(--pin-blue);color:#fff;border-color:var(--pin-border)}
-  .pin-tool.active.rare{background:var(--pin-gold);color:#111;border-color:var(--pin-border)}
-  .pin-tool.active.poros{background:var(--pin-neon);color:#111;border-color:var(--pin-border)}
-  .pin-tool.active.cristas{background:var(--pin-neon);color:#111;border-color:var(--pin-border)}
-
-  input[type="text"].white{
-    height:36px;background:#ffffff;border:1px solid #bbb;color:#111;border-radius:8px;padding:0 12px;min-width:360px
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
   }
 
-  /* ========= LAYOUT DO PALCO ========= */
-  #stage-wrap{display:flex;justify-content:center;gap:16px}
-
-  /* wrapper que “congela” o palco contra zoom do navegador */
-  #stage-freeze{
-    transform-origin: 0 0;
-    width: fit-content;
-    height: fit-content;
-    will-change: transform, width, height;
+  canvas#bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.18;
   }
 
-  #stage{
-    position:relative;border:1px solid #666;background:var(--stage-bg);overflow:hidden;
-    width: calc(2*var(--view-w)); height: var(--view-h);
-    border-radius:12px;
+  .page {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
   }
 
-  .frame{position:absolute;pointer-events:none;background:#fff;z-index:40}
-  .frame.top{left:0;right:0;top:0;height:var(--frame)}
-  .frame.bottom{left:0;right:0;bottom:0;height:var(--frame)}
-  .frame.left{left:0;top:0;bottom:0;width:var(--frame)}
-  .frame.right{right:0;top:0;bottom:0;width:var(--frame)}
-
-  .side{position:absolute;top:var(--frame);bottom:var(--frame); z-index:10;}
-  #left {left:var(--frame); width: calc(var(--view-w) - var(--centerline)/2 - var(--frame)); border-right:1px solid #666}
-  #right{right:var(--frame); width: calc(var(--view-w) - var(--centerline)/2 - var(--frame))}
-
-  .viewport{ position:absolute; top:0; left:0; width:100%; height:100%; overflow:hidden; cursor:grab; background:#000; border-radius:4px; z-index:10; }
-  .viewport.drag{cursor:grabbing}
-  .viewport.drop-ready{ outline:2px dashed var(--tracker); outline-offset:-2px; }
-
-  .layer{position:absolute; top:0; left:0; transform-origin:0 0; z-index:10;}
-  canvas{display:block}
-
-  .overlayCanvas{position:absolute;top:0;left:0;pointer-events:none; z-index:12;}
-
-  #centerLine{
-    position:absolute; top:var(--frame); bottom:var(--frame); width:var(--centerline); background:#fff; pointer-events:none;
-    left: calc(50% - var(--centerline)/2); z-index:45; border-left:1px solid #ddd;border-right:1px solid #ddd
+  .center-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(1.2rem, 3vw, 2rem);
+    flex: 1;
+    justify-content: center;
   }
 
-  .side-label{
-    position:absolute;top:calc(var(--frame) + 12px);left:calc(var(--frame) + 12px);z-index:35;background:rgba(0,0,0,.6);
-    padding:8px 12px;border:1px solid #fff;border-radius:8px;font-size:14px; cursor:pointer; user-select:none
+  .icons-row {
+    display: flex;
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    animation: fadeDown 1s ease both;
   }
-  .side-label:hover{ filter:brightness(1.08) }
-  #labelRight{right:calc(var(--frame) + 12px);left:auto}
 
-  .guia-col{width:240px;flex:0 0 240px}
-  .guia-minucias{background:#232323;border-radius:14px;box-shadow:0 2px 10px #0007;padding:10px;display:flex;flex-direction:column;align-items:center;position:sticky;top:12px}
-  .guia-minucias img{width:100%;border-radius:10px;box-shadow:0 1px 8px #0009;display:block}
-
-  /* Legenda colada, sem borda/raio/sombra */
-  #legend{
-    position:absolute; right:var(--frame); bottom:var(--frame);
-    z-index:30;background:#fff;color:#222;padding:8px 12px;font-size:14px;
-    user-select:none;min-width:70px;max-width:98vw;font-weight:600;display:none;
-    border:none; border-radius:0; box-shadow:none;
+  .icon-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
   }
-  #legend .content{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .leg-title{font-weight:800;color:#222;margin-right:8px}
-  .leg-dot{width:13px;height:13px;border-radius:50%;border:1.2px solid #aaa;display:inline-block}
-  .leg-i{background:var(--pin-blue)}
-  .leg-r{background:var(--pin-gold)}
-  .leg-sep{display:inline-block;width:1.2px;height:15px;background:#bbb;margin:0 6px}
 
-  .pins{position:absolute;top:0;left:0; z-index:20;}
-  .pin{
-    position:absolute;transform:translate(-50%,-50%) scale(1);border-radius:50%;user-select:none;pointer-events:none;
-    display:flex;align-items:center;justify-content:center;font-weight:500;
-    width:20px;height:20px;font-size:12px;
-    border:1.2px solid var(--pin-border);
-    background:var(--pin-red); color:var(--num-white);
+  .icon-svg {
+    width: clamp(48px, 8vw, 80px);
+    height: clamp(48px, 8vw, 80px);
+    filter: drop-shadow(0 0 8px var(--green));
+    animation: pulse 3s ease-in-out infinite;
   }
-  .pin.large{width:26px;height:26px;font-size:15px}
-  .pin.medium{width:20px;height:20px;font-size:12px}
-  .pin.small{width:14px;height:14px;font-size:10px}
 
-  .common{background:var(--pin-red); color:var(--num-white);}
-  .incommon{background:var(--pin-blue); color:var(--num-white);}
-  .rare{background:var(--pin-gold); color:var(--num-black);}
-  .poros{background:transparent; color:var(--num-white); border-color:var(--neon);}
-  .cristas{background:transparent; color:var(--num-white); border-color:var(--neon); border-radius:0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%);}
+  .icon-svg:nth-child(1) { animation-delay: 0s; }
+  .icon-wrap:nth-child(3) .icon-svg { animation-delay: 1.5s; }
 
-  .highlight{ background:var(--neon) !important; color:#111 !important; }
+  .divider-line {
+    width: 1px;
+    height: clamp(40px, 6vw, 70px);
+    background: linear-gradient(to bottom, transparent, var(--green-dim), transparent);
+    opacity: 0.5;
+  }
 
-  /* Export centralizado logo abaixo do canva */
-  #exportWrap{ margin-top:12px; text-align:center; }
+  .headline {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.1rem, 3.5vw, 2.4rem);
+    color: var(--green);
+    text-align: center;
+    letter-spacing: 0.08em;
+    line-height: 1.25;
+    text-transform: uppercase;
+    text-shadow:
+      0 0 20px rgba(0, 255, 136, 0.6),
+      0 0 60px rgba(0, 255, 136, 0.2);
+    max-width: 820px;
+    animation: fadeUp 1.2s ease 0.3s both;
+  }
 
-  .mode-invert .viewport{ cursor: crosshair }
-  .mode-pin    .viewport{ cursor: crosshair }
-  .mode-delete .viewport{ cursor: not-allowed }
+  .scan-line {
+    width: clamp(120px, 30vw, 260px);
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--green), transparent);
+    animation: scanPulse 2s ease-in-out infinite;
+  }
 
-  /* TRACKER: por padrão DESLIGADO; quando ligado, fica ATRÁS dos pins (z=15) */
-  #axisX,#axisY{ position:absolute; pointer-events:none; display:none; z-index:15; }
-  #axisX{ left:0; right:0; height:0; border-top:6px dotted var(--tracker)}
-  #axisY{ top:0; bottom:0; width:0; border-left:6px dotted var(--tracker)}
+  .brand-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(0.65rem, 1.5vw, 0.9rem);
+    color: var(--green-dim);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    animation: fadeUp 1.2s ease 0.6s both;
+  }
 
-  @media (max-width: 1820px){ :root{ --view-w:900px; --view-h:840px; } }
-  @media (max-width: 1640px){ :root{ --view-w:820px; --view-h:780px; } }
+  footer {
+    width: 100%;
+    text-align: center;
+    padding: 1.2rem;
+    border-top: 1px solid rgba(0, 255, 136, 0.1);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(0.6rem, 1.3vw, 0.78rem);
+    color: rgba(0, 255, 136, 0.4);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { filter: drop-shadow(0 0 6px var(--green)); opacity: 0.85; }
+    50%       { filter: drop-shadow(0 0 18px var(--green)) drop-shadow(0 0 35px rgba(0,255,136,0.4)); opacity: 1; }
+  }
+
+  @keyframes scanPulse {
+    0%, 100% { opacity: 0.3; transform: scaleX(0.6); }
+    50%       { opacity: 0.9; transform: scaleX(1); }
+  }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
-   <script>
-    (function() {
-      const allowedDomain = "vestigiumplataforma.getmembox.com";
-      const currentHost = window.location.hostname;
-      const referrer = document.referrer;
-      const insideAllowed =
-        currentHost.includes(allowedDomain) || referrer.includes(allowedDomain);
-      if (!insideAllowed) {
-        document.documentElement.innerHTML = "";
-        window.stop();
-      }
-    })();
-  </script>
-  <div class="header">
-    <h1>
-      <span aria-hidden="true" style="font-size:22px">🔍</span>
-      Marcador de Minúcias v.1.16
-    </h1>
-  </div>
 
-  <div class="wrap">
-    <div class="controls">
-      <div class="row">
-        <input id="markerName" class="white" type="text" placeholder="Nome do Vestígio" title="Nome-base para exportações" />
-        <button id="btnPaste" class="big-primary" title="Colar print da área de transferência">COLAR PRINT</button>
-        <div class="spacer"></div>
+<canvas id="bg"></canvas>
 
-        <button id="btnAxes" title="Mostrar/ocultar tracker (cruz)">Tracker</button>
-        <label for="axisSize" style="font-weight:700">Tam. tracker</label>
-        <select id="axisSize" title="Espessura do tracker">
-          <option value="small">P</option>
-          <option value="medium" selected>M</option>
-          <option value="large">G</option>
-        </select>
+<div class="page">
+  <div class="center-block">
 
-        <button id="btnLock" title="Definir proporção (fixa zoom/rotação e habilita marcação)">
-          <span id="lockIcon">🔓</span>&nbsp;Definir proporção
-        </button>
+    <div class="icons-row">
+
+      <div class="icon-wrap">
+        <svg class="icon-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="34" cy="34" r="20" stroke="#00ff88" stroke-width="3.5" fill="none"/>
+          <circle cx="34" cy="34" r="10" stroke="#00ff88" stroke-width="1.5" fill="none" stroke-dasharray="4 3" opacity="0.6"/>
+          <line x1="48" y1="48" x2="68" y2="68" stroke="#00ff88" stroke-width="4" stroke-linecap="round"/>
+          <line x1="62" y1="62" x2="72" y2="72" stroke="#00ff88" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+          <circle cx="34" cy="34" r="3" fill="#00ff88" opacity="0.8"/>
+        </svg>
       </div>
 
-      <div class="row center">
-        <label class="slider" for="centerlineSlider">Linha central</label>
-        <input type="range" id="centerlineSlider" min="50" max="80" step="2" value="50" title="Espessura da linha central" />
-        <span id="centerlineVal">50px</span>
+      <div class="divider-line"></div>
+
+      <div class="icon-wrap">
+        <svg class="icon-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M40 10 C26 10 22 22 22 30 C22 46 28 60 40 68 C52 60 58 46 58 30 C58 22 54 10 40 10Z" stroke="#00ff88" stroke-width="3" fill="none"/>
+          <path d="M33 28 C33 24.7 36.1 22 40 22 C43.9 22 47 24.7 47 28 C47 34 42 42 40 50 C38 42 33 34 33 28Z" stroke="#00ff88" stroke-width="2" fill="none" opacity="0.5"/>
+          <path d="M36 32 C36 30.3 37.8 29 40 29 C42.2 29 44 30.3 44 32" stroke="#00ff88" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <circle cx="40" cy="32" r="3.5" fill="#00ff88" opacity="0.9"/>
+          <path d="M28 42 Q22 50 26 58" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/>
+          <path d="M52 42 Q58 50 54 58" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/>
+          <path d="M34 55 Q37 62 40 68" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/>
+          <path d="M46 55 Q43 62 40 68" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.35"/>
+        </svg>
       </div>
 
-      <div id="rotationRow" class="row center" style="display:none">
-        <label class="slider" for="rotateSliderL">Rotação (Vestígio)</label>
-        <input type="range" id="rotateSliderL" min="-180" max="180" step="1" value="0" title="Rotaciona imagem do vestígio" />
-        <span id="rotateValL">0°</span>
-
-        <div style="width:24px"></div>
-
-        <label class="slider" for="rotateSliderR">Rotação (Padrão)</label>
-        <input type="range" id="rotateSliderR" min="-180" max="180" step="1" value="0" title="Rotaciona imagem do padrão" />
-        <span id="rotateValR">0°</span>
-      </div>
-
-      <div class="row">
-        <label for="size" style="font-weight:700">Pin</label>
-        <select id="size" title="Tamanho do PIN" disabled>
-          <option value="large">G</option>
-          <option value="medium" selected>M</option>
-          <option value="small">P</option>
-        </select>
-        <button id="btnC" class="pin-tool" title="PIN Comum (C)" disabled>C</button>
-        <button id="btnI" class="pin-tool" title="PIN Incomum (I)" disabled>I</button>
-        <button id="btnR" class="pin-tool" title="PIN Raro (R)" disabled>R</button>
-        <button id="btnPo" class="pin-tool" title="PIN Poros (Po)" disabled>Po</button>
-        <button id="btnCr" class="pin-tool" title="PIN Cristas (Cr)" disabled>Cr</button>
-
-        <span id="pairCounters" style="display:inline-flex;gap:14px;align-items:center;margin-left:8px">
-          <span style="display:inline-flex;gap:6px;align-items:center;font-weight:800"><i class="leg-dot" style="background:var(--pin-red)"></i>C:<span id="countC">0</span></span>
-          <span style="display:inline-flex;gap:6px;align-items:center;font-weight:800"><i class="leg-dot leg-i"></i>I:<span id="countI">0</span></span>
-          <span style="display:inline-flex;gap:6px;align-items:center;font-weight:800"><i class="leg-dot leg-r"></i>R:<span id="countR">0</span></span>
-          <span style="display:inline-flex;gap:6px;align-items:center;font-weight:800"><i class="leg-dot" style="background:transparent;border-color:var(--neon)"></i>Po:<span id="countPo">0</span></span>
-          <span style="display:inline-flex;gap:6px;align-items:center;font-weight:800"><i class="leg-dot" style="background:transparent;border-color:var(--neon);clip-path: polygon(50% 0%, 0% 100%, 100% 100%);border-radius:0"></i>Cr:<span id="countCr">0</span></span>
-        </span>
-
-        <div class="spacer"></div>
-
-        <button id="btnInv" title="Inverter por polígono (ESQUERDA)" disabled>Inverter (polígono)</button>
-        <button id="btnInvUndo" title="Desfazer última inversão" disabled>Desf. Inv.</button>
-
-        <button id="btnTogglePins" title="Exibir/Ocultar pins (P)" disabled>PINs (P)</button>
-        <button id="btnDel" title="Apagar minúcia (par ou unitária)" disabled>Apagar Minúcia</button>
-        <button id="btnUndo" title="CTRL+Z" disabled>Desfazer</button>
-
-        <div class="spacer"></div>
-        <button id="btnReset" class="btn-reset" title="Limpa marcações e zoom/pan; mantém imagens">Apagar marcações</button>
-        <button id="btnWipe"  class="btn-wipe"  title="Remove as imagens do canvas">Limpar tela</button>
-      </div>
     </div>
 
-    <div id="stage-wrap">
-      <aside class="guia-col">
-        <div class="guia-minucias">
-          <img src="https://raw.githubusercontent.com/rodrigo-mbarros-pages/Guia/refs/heads/main/Guia%20de%20min%C3%BAcias.png" alt="Guia de Minúcias">
-        </div>
-      </aside>
+    <div class="scan-line"></div>
 
-      <!-- wrapper que neutraliza o zoom do navegador -->
-      <div id="stage-freeze">
-        <div id="stage">
-          <div class="frame top"></div>
-          <div class="frame bottom"></div>
-          <div class="frame left"></div>
-          <div class="frame right"></div>
+    <h1 class="headline">Entre com o seu login<br>e senha da plataforma Vestigium</h1>
 
-          <!-- tracker (atrás dos pins, à frente das imagens) -->
-          <div id="axisX"></div>
-          <div id="axisY"></div>
+    <div class="scan-line"></div>
 
-          <span id="labelLeft"  class="side-label">Imagem do vestígio</span>
-          <span id="labelRight" class="side-label">Imagem do padrão</span>
+    <p class="brand-badge">&#x25B6; Acesso seguro &nbsp;|&nbsp; Vestigium ID</p>
 
-          <div id="left" class="side">
-            <div id="vpL" class="viewport">
-              <div id="layerL" class="layer">
-                <canvas id="cvL"></canvas>
-                <canvas id="invL" class="overlayCanvas"></canvas>
-                <div id="pinsL" class="pins"></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="right" class="side">
-            <div id="vpR" class="viewport">
-              <div id="layerR" class="layer">
-                <canvas id="cvR"></canvas>
-                <canvas id="invR" class="overlayCanvas"></canvas>
-                <div id="pinsR" class="pins"></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="centerLine"></div>
-          <div id="legend"><div class="content" id="legendContent"></div></div>
-        </div>
-
-        <!-- Botão export centralizado abaixo do canva -->
-        <div id="exportWrap"><button id="btnExport">Exportar (marcada & original)</button></div>
-      </div>
-    </div>
   </div>
 
-  <input id="fileLeft"  type="file" accept="image/*" style="position:absolute;left:-9999px">
-  <input id="fileRight" type="file" accept="image/*" style="position:absolute;left:-9999px">
+  <footer>Plataforma Vestigium &nbsp;&mdash;&nbsp; 2026 &nbsp;&mdash;&nbsp; Todos os direitos reservados</footer>
+</div>
 
 <script>
-/* ======= Estado ======= */
-const stage = document.getElementById('stage');
-const stageFreeze = document.getElementById('stage-freeze');
-const axisX = document.getElementById('axisX');
-const axisY = document.getElementById('axisY');
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
 
-const legend = document.getElementById('legend');
-const legendContent = document.getElementById('legendContent');
-
-const left  = sideFactory('left','vpL','layerL','cvL','invL','pinsL');
-const right = sideFactory('right','vpR','layerR','cvR','invR','pinsR');
-const sides = {left,right};
-
-let pinsHidden = false;
-let currentSize = 'medium';
-let currentType = 'common';
-let mode = null;
-let lockActive = false;
-const pinHistory = [];
-let allowDrops = true;
-
-/* Tracker DESLIGADO por padrão */
-let axesOn = false;
-let axesSize = 'medium';
-
-/* botões */
-const btnPaste = document.getElementById('btnPaste');
-const fileLeft = document.getElementById('fileLeft');
-const fileRight= document.getElementById('fileRight');
-
-const btnAxes = document.getElementById('btnAxes');
-const axisSizeSel = document.getElementById('axisSize');
-
-const btnLock = document.getElementById('btnLock');
-const lockIcon = document.getElementById('lockIcon');
-
-const btnInv = document.getElementById('btnInv');
-const btnInvUndo = document.getElementById('btnInvUndo');
-
-const btnC = document.getElementById('btnC');
-const btnI = document.getElementById('btnI');
-const btnR = document.getElementById('btnR');
-const btnPo = document.getElementById('btnPo');
-const btnCr = document.getElementById('btnCr');
-const sizeSel = document.getElementById('size');
-
-const btnUndo = document.getElementById('btnUndo');
-const btnDel  = document.getElementById('btnDel');
-const btnTogglePins = document.getElementById('btnTogglePins');
-
-const btnReset = document.getElementById('btnReset');
-const btnWipe  = document.getElementById('btnWipe');
-const btnExport = document.getElementById('btnExport');
-const markerName = document.getElementById('markerName');
-
-const countC = document.getElementById('countC');
-const countI = document.getElementById('countI');
-const countR = document.getElementById('countR');
-const countPo = document.getElementById('countPo');
-const countCr = document.getElementById('countCr');
-
-const centerlineSlider = document.getElementById('centerlineSlider');
-const centerlineVal = document.getElementById('centerlineVal');
-
-const rotationRow = document.getElementById('rotationRow');
-const rotateSliderL = document.getElementById('rotateSliderL');
-const rotateSliderR = document.getElementById('rotateSliderR');
-const rotateValL = document.getElementById('rotateValL');
-const rotateValR = document.getElementById('rotateValR');
-
-const labelLeft = document.getElementById('labelLeft');
-const labelRight= document.getElementById('labelRight');
-
-/* ======= Helpers ======= */
-function sideFactory(name, vpId, layerId, cvId, invId, pinsId){
-  return {
-    name,
-    vp:document.getElementById(vpId),
-    layer:document.getElementById(layerId),
-    canvas:document.getElementById(cvId),
-    invCan:document.getElementById(invId),
-    pinsLayer:document.getElementById(pinsId),
-    ctx:null, invCtx:null,
-    pins:[],
-    scale:1, tx:0, ty:0, rot:0,
-    img:null, imgW:0, imgH:0
-  };
-}
-function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-function deg2rad(d){ return d*Math.PI/180; }
-function rad2deg(r){ return r*180/Math.PI; }
-function applyTransform(s){
-  const cx = s.imgW/2, cy = s.imgH/2;
-  s.layer.style.transform =
-    `translate(${s.tx}px, ${s.ty}px) translate(${cx}px, ${cy}px) rotate(${s.rot}rad) scale(${s.scale}) translate(${-cx}px, ${-cy}px)`;
-  refreshPinsScale(s);
-}
-function setDisabled(el, on){ el.disabled = !!on; }
-function clearGold(){ [btnInv,btnDel,btnC,btnI,btnR,btnPo,btnCr].forEach(b=>b.classList.remove('gold-active')); }
-
-function fitCover(s){
-  const sw=s.vp.clientWidth, sh=s.vp.clientHeight;
-  const k=Math.max(sw/s.imgW, sh/s.imgH);
-  s.scale=k;
-  const cx = s.imgW/2, cy = s.imgH/2;
-  const targetLeft = (sw - s.imgW*k)/2;
-  const targetTop  = (sh - s.imgH*k)/2;
-  s.tx = targetLeft - cx*(1-k);
-  s.ty = targetTop  - cy*(1-k);
-  s.rot=0;
-  applyTransform(s);
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
 }
 
-/* ======= Inicial preto ======= */
-function initSideBlack(s){
-  s.img=null; s.imgW=s.vp.clientWidth; s.imgH=s.vp.clientHeight;
-  s.canvas.width=s.imgW; s.canvas.height=s.imgH;
-  s.ctx=s.canvas.getContext('2d'); s.ctx.fillStyle='#000'; s.ctx.fillRect(0,0,s.imgW,s.imgH);
-  s.invCan.width=s.imgW; s.invCan.height=s.imgH; s.invCtx=s.invCan.getContext('2d'); s.invCtx.clearRect(0,0,s.imgW,s.imgH);
-  s.layer.style.width=s.imgW+'px'; s.layer.style.height=s.imgH+'px';
-  s.pinsLayer.style.width=s.imgW+'px'; s.pinsLayer.style.height=s.imgH+'px';
-  s.scale=1; s.rot=0; s.tx=(s.vp.clientWidth-s.imgW)/2; s.ty=(s.vp.clientHeight-s.imgH)/2; applyTransform(s);
-}
-initSideBlack(left); initSideBlack(right);
-updateLabels();
-
-/* ======= Congelar palco contra zoom do navegador ======= */
-const BASE_DPR = window.devicePixelRatio || 1;
-function getPageZoom(){
-  if (window.visualViewport && typeof window.visualViewport.scale === 'number') {
-    return window.visualViewport.scale || 1;
-  }
-  return (window.devicePixelRatio || 1) / BASE_DPR;
-}
-function freezeCanvasTo100(){
-  const zoom = getPageZoom();  // ex.: 0.9 para 90%
-  const inv  = 1 / zoom;
-  stageFreeze.style.transform = `scale(${inv})`;
-  const w = Math.round(stage.offsetWidth  * zoom);
-  const h = Math.round(stage.offsetHeight * zoom);
-  stageFreeze.style.width  = w + 'px';
-  stageFreeze.style.height = h + 'px';
-}
-freezeCanvasTo100();
-window.visualViewport && window.visualViewport.addEventListener('resize', freezeCanvasTo100);
-window.addEventListener('resize', freezeCanvasTo100);
-
-/* ======= UI lock ======= */
-function updateLockUI(){
-  btnLock.classList.toggle('locked', lockActive);
-  lockIcon.textContent = lockActive ? '🔒' : '🔓';
-  [btnInv, btnInvUndo, sizeSel, btnC, btnI, btnR, btnPo, btnCr, btnTogglePins, btnDel, btnUndo].forEach(el => setDisabled(el, !lockActive));
-  rotationRow.style.display = lockActive ? 'none' : 'flex';
-  allowDrops = !lockActive;
-  const labelsDisplay = lockActive ? 'none' : 'inline-block';
-  labelLeft.style.display = labelsDisplay;
-  labelRight.style.display = labelsDisplay;
-  if(!lockActive){ setMode(null); }
-  btnLock.classList.toggle('gold-active', lockActive);
-
-  btnAxes.classList.toggle('axes-on', axesOn);
-  axisX.style.display = 'none';
-  axisY.style.display = 'none';
-  applyAxisThickness();
-}
-function setLock(on){
-  lockActive=!!on;
-  updateLockUI();
-  refreshPinsScale(left); refreshPinsScale(right);
-  if(lockActive){
-    currentType='common'; currentSize='medium'; sizeSel.value='medium';
-    setMode('pin','common');
-  }
-}
-btnLock.addEventListener('click', ()=> setLock(!lockActive));
-
-/* ======= Tracker ======= */
-function applyAxisThickness(){
-  const w = (axesSize==='small')?3 : (axesSize==='medium')?6 : 10;
-  axisX.style.borderTopWidth = w + 'px';
-  axisY.style.borderLeftWidth = w + 'px';
-}
-let isMouseInsideStage = false;
-btnAxes.addEventListener('click', ()=>{
-  axesOn = !axesOn;
-  btnAxes.classList.toggle('axes-on', axesOn);
-  const show = axesOn && isMouseInsideStage;
-  axisX.style.display = show ? 'block' : 'none';
-  axisY.style.display = show ? 'block' : 'none';
-});
-axisSizeSel.addEventListener('change', ()=>{
-  axesSize = axisSizeSel.value;
-  if(axesOn) applyAxisThickness();
-});
-stage.addEventListener('mouseenter', ()=>{
-  isMouseInsideStage = true;
-  if(axesOn){ axisX.style.display='block'; axisY.style.display='block'; }
-});
-stage.addEventListener('mouseleave', ()=>{
-  isMouseInsideStage = false;
-  axisX.style.display='none'; axisY.style.display='none';
-});
-stage.addEventListener('mousemove', (e)=>{
-  if(!axesOn || !isMouseInsideStage) return;
-  const r=stage.getBoundingClientRect();
-  const x = e.clientX - r.left;
-  const y = e.clientY - r.top;
-  axisX.style.top  = `${y}px`;
-  axisY.style.left = `${x}px`;
-});
-
-/* ======= Labels/upload ======= */
-function updateLabels(){
-  labelLeft.textContent  = left.img  ? 'Trocar vestígio' : 'Imagem do vestígio';
-  labelRight.textContent = right.img ? 'Trocar padrão'   : 'Imagem do padrão';
-}
-labelLeft.addEventListener('click',  ()=> { if(!lockActive) fileLeft.click(); });
-labelRight.addEventListener('click', ()=> { if(!lockActive) fileRight.click(); });
-
-/* ======= Legenda & contadores ======= */
-function anyTypeExists(type){
-  return left.pins.some(p=>p.dataset.type===type) || right.pins.some(p=>p.dataset.type===type);
-}
-function updateLegend(){
-  const anyI = anyTypeExists('incommon');
-  const anyR = anyTypeExists('rare');
-  const anyPo = anyTypeExists('poros');
-  const anyCr = anyTypeExists('cristas');
-  legendContent.innerHTML = '';
-  if(!anyI && !anyR && !anyPo && !anyCr){ legend.style.display='none'; return; }
-  legend.style.display='block';
-  const t = document.createElement('span'); t.className='leg-title'; t.textContent='Legenda:'; legendContent.appendChild(t);
-  if(anyI){
-    const d = document.createElement('i'); d.className='leg-dot leg-i'; legendContent.appendChild(d);
-    const tx = document.createElement('span'); tx.textContent='minúcia incomum'; legendContent.appendChild(tx);
-  }
-  if(anyI && (anyR || anyPo || anyCr)){ const sep=document.createElement('span'); sep.className='leg-sep'; legendContent.appendChild(sep); }
-  if(anyR){
-    const d = document.createElement('i'); d.className='leg-dot leg-r'; legendContent.appendChild(d);
-    const tx = document.createElement('span'); tx.textContent='minúcia rara'; legendContent.appendChild(tx);
-  }
-  if(anyR && (anyPo || anyCr)){ const sep=document.createElement('span'); sep.className='leg-sep'; legendContent.appendChild(sep); }
-  if(anyPo){
-    const d = document.createElement('i'); d.className='leg-dot'; d.style.background='transparent'; d.style.borderColor='var(--neon)';
-    legendContent.appendChild(d);
-    const tx = document.createElement('span'); tx.textContent='poros'; legendContent.appendChild(tx);
-  }
-  if(anyPo && anyCr){ const sep=document.createElement('span'); sep.className='leg-sep'; legendContent.appendChild(sep); }
-  if(anyCr){
-    const d = document.createElement('i'); d.className='leg-dot'; d.style.background='transparent'; d.style.borderColor='var(--neon)';
-    d.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)'; d.style.borderRadius='0';
-    legendContent.appendChild(d);
-    const tx = document.createElement('span'); tx.textContent='cristas'; legendContent.appendChild(tx);
-  }
-}
-function pairCountType(type){
-  const n = Math.min(left.pins.length, right.pins.length);
-  let c=0;
-  for(let i=0;i<n;i++){
-    const l=left.pins[i], r=right.pins[i];
-    if(l && r && l.dataset.type===type && r.dataset.type===type) c++;
-  }
-  return c;
-}
-function updateCounters(){
-  countC.textContent = pairCountType('common');
-  countI.textContent = pairCountType('incommon');
-  countR.textContent = pairCountType('rare');
-  countPo.textContent = pairCountType('poros');
-  countCr.textContent = pairCountType('cristas');
-}
-
-/* ======= Pins ======= */
-function refreshPinsScale(s){
-  const f = lockActive ? (1 / s.scale) : 1;
-  const rot = -s.rot;
-  s.pins.forEach(p=>{
-    p.style.transform = `translate(-50%,-50%) rotate(${rot}rad) scale(${f})`;
-  });
-}
-
-function drawToSide(s, img){
-  s.img=img; s.imgW=img.width; s.imgH=img.height;
-  s.canvas.width=s.imgW; s.canvas.height=s.imgH;
-  s.ctx=s.canvas.getContext('2d'); s.ctx.clearRect(0,0,s.imgW,s.imgH); s.ctx.drawImage(img,0,0);
-  s.invCan.width=s.imgW; s.invCan.height=s.imgH; s.invCtx=s.invCan.getContext('2d'); s.invCtx.clearRect(0,0,s.imgW,s.imgH);
-  s.layer.style.width=s.imgW+'px'; s.layer.style.height=s.imgH+'px';
-  s.pinsLayer.style.width=s.imgW+'px'; s.pinsLayer.style.height=s.imgH+'px';
-  fitCover(s);
-  updateLabels();
-}
-function loadFromFile(s, file){
-  const url=URL.createObjectURL(file);
-  const img=new Image(); img.onload=()=>drawToSide(s,img); img.src=url;
-}
-fileLeft .addEventListener('change', e=>{ if(e.target.files?.[0]) loadFromFile(left, e.target.files[0]); });
-fileRight.addEventListener('change', e=>{ if(e.target.files?.[0]) loadFromFile(right,e.target.files[0]); });
-
-/* Colar Print */
-async function pasteFromClipboard(){
-  try{
-    if(!navigator.clipboard?.read) throw new Error('no-read');
-    const items = await navigator.clipboard.read();
-    for(const it of items){
-      const type = it.types.find(t=>t.startsWith('image/'));
-      if(!type) continue;
-      const blob = await it.getType(type);
-      handlePastedBlob(blob);
-      return;
-    }
-    alert('Nenhuma imagem encontrada na área de transferência. Use CTRL+V após copiar um print.');
-  }catch{
-    alert('Seu navegador pode bloquear o acesso direto ao clipboard. Tente CTRL+V depois de copiar o print.');
-  }
-}
-btnPaste.addEventListener('click', pasteFromClipboard);
-
-/* CTRL+V */
-document.addEventListener('paste', (e)=>{
-  const files = [...(e.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));
-  if(files.length){ handlePastedBlob(files[0]); return; }
-  const it = [...(e.clipboardData?.items||[])].find(x=>x.type?.startsWith('image/'));
-  if(it){ const blob = it.getAsFile(); if(blob) handlePastedBlob(blob); }
-});
-
-/* Split do print com GAP=20px e lock automático */
-function handlePastedBlob(blob){
-  const url=URL.createObjectURL(blob);
-  const img=new Image();
-  img.onload=()=>{
-    const half = Math.floor(img.width/2);
-    const GAP = 20;
-    const wL = Math.max(0, half - GAP);
-    const cL=document.createElement('canvas'); cL.width=wL; cL.height=img.height;
-    cL.getContext('2d').drawImage(img,0,0,wL,img.height,0,0,wL,img.height);
-
-    const wR = Math.max(0, img.width - (half + GAP));
-    const cR=document.createElement('canvas'); cR.width=wR; cR.height=img.height;
-    cR.getContext('2d').drawImage(img,half+GAP,0,wR,img.height,0,0,wR,img.height);
-
-    const iL=new Image(); const iR=new Image();
-    let loaded=0;
-    function done(){ if(++loaded===2){ fitCover(left); fitCover(right); setLock(true); } }
-    iL.onload=()=>{ drawToSide(left,iL); done(); };
-    iR.onload=()=>{ drawToSide(right,iR); done(); };
-    iL.src=cL.toDataURL('image/png');
-    iR.src=cR.toDataURL('image/png');
-  };
-  img.src=url;
-}
-
-/* Drag & Drop */
-function enableDnDForSide(s){
-  const vp = s.vp;
-  ['dragenter','dragover'].forEach(ev=>{
-    vp.addEventListener(ev, e=>{
-      if(!allowDrops) return;
-      e.preventDefault();
-      if(e.dataTransfer) e.dataTransfer.dropEffect='copy';
-      vp.classList.add('drop-ready');
-    });
-  });
-  ['dragleave','dragend','drop'].forEach(ev=>{
-    vp.addEventListener(ev, ()=> vp.classList.remove('drop-ready'));
-  });
-  vp.addEventListener('drop', e=>{
-    if(!allowDrops) return;
-    e.preventDefault();
-    const files=[...e.dataTransfer.files||[]].filter(f=>f.type.startsWith('image/'));
-    if(files.length){ loadFromFile(s, files[0]); }
-  });
-}
-enableDnDForSide(left);
-enableDnDForSide(right);
-
-['dragover','drop'].forEach(ev=>{
-  stage.addEventListener(ev, e=>{
-    if(!allowDrops) return;
-    const inViewport = e.target.closest && e.target.closest('.viewport');
-    if(inViewport) return;
-    e.preventDefault();
-    if(ev==='drop'){
-      const files=[...e.dataTransfer.files||[]].filter(f=>f.type.startsWith('image/'));
-      if(files.length){ handlePastedBlob(files[0]); }
-    }
-  });
-});
-['dragover','drop'].forEach(ev=>{
-  window.addEventListener(ev, e=>{ e.preventDefault(); }, {passive:false});
-});
-
-/* ======= Pins ======= */
-function addPin(s, ix, iy){
-  if(!lockActive || !s.img) return;
-  ix=clamp(ix,0,s.imgW); iy=clamp(iy,0,s.imgH);
-  const el=document.createElement('div');
-  el.className=`pin ${currentSize} ${currentType}`;
-  el.dataset.ix=ix; el.dataset.iy=iy; el.dataset.type=currentType; el.dataset.size=currentSize;
-  s.pinsLayer.appendChild(el); s.pins.push(el);
-  el.textContent=String(s.pins.length);
-  el.style.left=ix+'px'; el.style.top=iy+'px';
-  if(pinsHidden) el.style.display='none';
-  pinHistory.push({side:s.name, el});
-  refreshPinsScale(s);
-  updateLegend(); updateCounters();
-}
-function renumber(s){ s.pins.forEach((p,i)=>p.textContent=String(i+1)); }
-function undoPin(){
-  if(!lockActive || !pinHistory.length) return;
-  const last=pinHistory.pop(); const s=sides[last.side];
-  const idx=s.pins.indexOf(last.el);
-  if(idx>-1){ last.el.remove(); s.pins.splice(idx,1); renumber(s); updateLegend(); updateCounters(); }
-}
-function deletePairByIndex(i){
-  if(left.pins[i]) { left.pins[i].remove();  left.pins.splice(i,1);  renumber(left); }
-  if(right.pins[i]){ right.pins[i].remove(); right.pins.splice(i,1); renumber(right); }
-  for(let k=pinHistory.length-1;k>=0;k--) if(!document.body.contains(pinHistory[k].el)) pinHistory.splice(k,1);
-  updateLegend(); updateCounters();
-}
-document.addEventListener('contextmenu', e=>e.preventDefault());
-btnUndo.addEventListener('click', undoPin);
-btnTogglePins.addEventListener('click', ()=>{ if(!lockActive) return; pinsHidden=!pinsHidden; [...left.pins,...right.pins].forEach(p=>p.style.display=pinsHidden?'none':''); });
-sizeSel.addEventListener('change', ()=> currentSize=sizeSel.value );
-
-/* ======= Modos & atalhos ======= */
-function setMode(newMode, pinType=null){
-  if(!lockActive && newMode) return;
-  mode=null; document.body.classList.remove('mode-pin','mode-invert','mode-delete');
-  clearGold();
-  [btnC,btnI,btnR,btnPo,btnCr].forEach(b=>b.className='pin-tool');
-
-  if(newMode==='invert'){
-    mode='invert'; document.body.classList.add('mode-invert');
-    btnInv.classList.add('gold-active');
-    poly.left.length=0; clearPolyOverlay(left); closeReady=false;
-  }else if(newMode==='pin'){
-    mode='pin'; document.body.classList.add('mode-pin');
-    if(pinType) currentType=pinType;
-    if(currentType==='common'){ btnC.className+=' active common'; btnC.classList.add('gold-active'); }
-    if(currentType==='incommon'){ btnI.className+=' active incommon'; btnI.classList.add('gold-active'); }
-    if(currentType==='rare'){ btnR.className+=' active rare'; btnR.classList.add('gold-active'); }
-    if(currentType==='poros'){ btnPo.className+=' active poros'; btnPo.classList.add('gold-active'); }
-    if(currentType==='cristas'){ btnCr.className+=' active cristas'; btnCr.classList.add('gold-active'); }
-  }else if(newMode==='delete'){
-    mode='delete'; document.body.classList.add('mode-delete'); btnDel.classList.add('gold-active');
-  }
-}
-btnInv.addEventListener('click', ()=> setMode( mode==='invert'? null : 'invert' ));
-btnC  .addEventListener('click', ()=> setMode('pin','common'));
-btnI  .addEventListener('click', ()=> setMode('pin','incommon'));
-btnR  .addEventListener('click', ()=> setMode('pin','rare'));
-btnPo .addEventListener('click', ()=> setMode('pin','poros'));
-btnCr .addEventListener('click', ()=> setMode('pin','cristas'));
-btnDel.addEventListener('click', ()=> setMode( mode==='delete'? null : 'delete'));
-
-document.addEventListener('keydown', (e)=>{
-  if(e.key==='Escape'){ setMode(null); }
-  if((e.ctrlKey||e.metaKey) && (e.key==='z'||e.key==='Z')){ e.preventDefault(); undoPin(); }
-  if(!e.ctrlKey && !e.metaKey && !e.altKey && (e.key==='p'||e.key==='P')) btnTogglePins.click();
-
-  if(mode==='invert' && lockActive){
-    if(e.key==='Enter'){ if(poly.left.length>=3){ applyInversion(left); poly.left.length=0; clearPolyOverlay(left); } }
-    if(e.key==='Backspace'){ poly.left.pop(); drawPolyOverlay(left); }
-  }
-});
-
-/* ======= Sliders ======= */
-function setRootPx(varName, px){ document.documentElement.style.setProperty(varName, px+'px'); }
-centerlineSlider.addEventListener('input', ()=>{ const v=parseInt(centerlineSlider.value,10); setRootPx('--centerline', v); centerlineVal.textContent=v+'px'; });
-function updateRotationFromSlider(side, slider, label){
-  let d= parseInt(slider.value,10) || 0;
-  if(Math.abs(d)<1){ d=0; slider.value='0'; }
-  label.textContent = d+'°';
-  side.rot = deg2rad(d);
-  applyTransform(side);
-}
-rotateSliderL.addEventListener('input', ()=> updateRotationFromSlider(left, rotateSliderL, rotateValL));
-rotateSliderR.addEventListener('input', ()=> updateRotationFromSlider(right, rotateSliderR, rotateValR));
-
-/* ======= Navegação ======= */
-function screenToImg(s, mx, my){
-  const cx = s.imgW/2, cy = s.imgH/2;
-  let x = mx - s.tx, y = my - s.ty;
-  x -= cx; y -= cy;
-  const cos = Math.cos(s.rot), sin = Math.sin(s.rot);
-  const xr =  cos*x + sin*y;
-  const yr = -sin*x + cos*y;
-  return { x: xr / s.scale + cx, y: yr / s.scale + cy };
-}
-function zoomAt(s, mx, my, factor){
-  const p=screenToImg(s,mx,my);
-  s.scale=clamp(s.scale*factor,0.2,12);
-  const cx = s.imgW/2, cy = s.imgH/2;
-  const px = p.x - cx, py = p.y - cy;
-  const cos = Math.cos(s.rot), sin = Math.sin(s.rot);
-  const sx = (cos*px - sin*py) * s.scale + cx;
-  const sy = (sin*px + cos*py) * s.scale + cy;
-  s.tx = mx - sx;
-  s.ty = my - sy;
-  applyTransform(s);
-}
-function setHighlight(index){
-  [...left.pins,...right.pins].forEach(p=>p.classList.remove('highlight'));
-  if(index<0) return;
-  if(left.pins[index] && right.pins[index]){
-    left.pins[index].classList.add('highlight');
-    right.pins[index].classList.add('highlight');
-  }
-}
-function hitTestPinIndexLocal(s, mx, my){
-  const p=screenToImg(s,mx,my);
-  const thr=12/s.scale;
-  let hit=-1, best=1e9;
-  s.pins.forEach((pin,idx)=>{
-    const ix=parseFloat(pin.dataset.ix), iy=parseFloat(pin.dataset.iy);
-    const d=Math.hypot(ix-p.x, iy-p.y);
-    if(d<=thr && d<best){ best=d; hit=idx; }
-  });
-  return hit;
-}
-function hitTestPinIndexForHighlight(s, mx, my){
-  const hit=hitTestPinIndexLocal(s, mx, my);
-  const other=(s===left)?right:left;
-  return (hit>=0 && other.pins[hit]) ? hit : -1;
-}
-
-function attachNavHandlers(s){
-  let dragging=false, moved=false, sx=0, sy=0;
-
-  s.vp.addEventListener('contextmenu', e=>e.preventDefault());
-
-  s.vp.addEventListener('mousedown', e=>{
-    if(e.button===2 && lockActive){
-      const r=s.vp.getBoundingClientRect();
-      const mx=e.clientX-r.left, my=e.clientY-r.top;
-      const i=hitTestPinIndexLocal(s, mx, my);
-      if(i>=0){ deletePairByIndex(i); }
-      return;
-    }
-    dragging=true; moved=false; sx=e.clientX; sy=e.clientY;
-
-    if(mode==='invert' && lockActive && s.name==='left'){
-      const r=s.vp.getBoundingClientRect();
-      const mx=e.clientX-r.left, my=e.clientY-r.top;
-      const p=screenToImg(s,mx,my);
-      if(poly.left.length>=3 && isCloseToFirst(p)){
-        applyInversion(left); poly.left.length=0; clearPolyOverlay(left); return;
-      }
-      poly.left.push(p);
-      drawPolyOverlay(left);
-    }
-  });
-
-  s.vp.addEventListener('mousemove', e=>{
-    const r=s.vp.getBoundingClientRect();
-    const mx=e.clientX-r.left, my=e.clientY-r.top;
-
-    if(dragging && !lockActive && mode!=='invert'){
-      const dx=e.clientX-sx, dy=e.clientY-sy;
-      if(Math.hypot(dx,dy)>2) moved=true;
-      if(e.ctrlKey){
-        s.tx+=dx; s.ty+=dy; applyTransform(s);
-      } else {
-        left.tx+=dx; left.ty+=dy; right.tx+=dx; right.ty+=dy; applyTransform(left); applyTransform(right);
-      }
-      sx=e.clientX; sy=e.clientY;
-    }
-
-    const hit=hitTestPinIndexForHighlight(s, mx, my);
-    setHighlight(hit);
-
-    if(mode==='invert' && lockActive && s.name==='left' && poly.left.length){
-      const p=screenToImg(s,mx,my);
-      closeReady = isCloseToFirst(p);
-      drawPolyOverlay(left);
-    }
-  });
-
-  window.addEventListener('mouseup', e=>{
-    if(!dragging) return;
-    dragging=false;
-
-    const r=s.vp.getBoundingClientRect();
-    const mx=e.clientX-r.left, my=e.clientY-r.top;
-
-    if(mode==='delete' && lockActive && !moved){
-      const i=hitTestPinIndexLocal(s, mx, my);
-      if(i>=0) deletePairByIndex(i);
-      return;
-    }
-    if(mode==='pin' && lockActive && !moved){
-      const p=screenToImg(s,mx,my);
-      addPin(s,p.x,p.y);
-    }
-  });
-
-  s.vp.addEventListener('dblclick', e=>{
-    if(mode!=='invert' || !lockActive || s.name!=='left') return;
-    if(poly.left.length>=3){ applyInversion(left); poly.left.length=0; clearPolyOverlay(left); }
-  });
-
-  s.vp.addEventListener('wheel', e=>{
-    if(lockActive){ return; }
-    e.preventDefault();
-    const r=s.vp.getBoundingClientRect();
-    const mx=e.clientX-r.left, my=e.clientY-r.top;
-    const factor=(e.deltaY<0)?1.12:0.89;
-    if(e.ctrlKey){ zoomAt(s,mx,my,factor); }
-    else{
-      zoomAt(s,mx,my,factor);
-      const o=(s===left)?right:left;
-      zoomAt(o, o.vp.clientWidth/2, o.vp.clientHeight/2, factor);
-    }
-  }, {passive:false});
-
-  s.vp.addEventListener('mouseleave', ()=> setHighlight(-1) );
-}
-attachNavHandlers(left); attachNavHandlers(right);
-
-/* ======= Inversão ======= */
-const poly = { left:[] };
-const invHist = { left:[] };
-let closeReady=false;
-const closeRadius=18;
-
-function isCloseToFirst(pt){
-  const first=poly.left[0];
-  return Math.hypot(first.x-pt.x, first.y-pt.y) <= closeRadius;
-}
-function clearPolyOverlay(s){ s.invCtx.clearRect(0,0,s.invCan.width,s.invCan.height); }
-function drawPolyOverlay(s){
-  s.invCtx.clearRect(0,0,s.invCan.width,s.invCan.height);
-  const pts=poly.left; if(!pts.length) return;
-  s.invCtx.strokeStyle='#00ffff'; s.invCtx.lineWidth=2; s.invCtx.fillStyle='rgba(0,255,255,0.2)';
-  s.invCtx.beginPath(); s.invCtx.moveTo(pts[0].x, pts[0].y);
-  for (let i=1; i<pts.length; i++) s.invCtx.lineTo(pts[i].x, pts[i].y);
-  s.invCtx.stroke();
-  pts.forEach((p,idx)=>{
-    s.invCtx.beginPath(); s.invCtx.arc(p.x,p.y,6,0,2*Math.PI);
-    s.invCtx.fillStyle = (idx===0 && closeReady) ? '#FFA500' : '#00ffff';
-    s.invCtx.fill();
-    s.invCtx.lineWidth=2; s.invCtx.strokeStyle='#003a3a'; s.invCtx.stroke();
-  });
-}
-function applyInversion(s){
-  if(poly.left.length<3) return;
-  invHist.left.push(s.ctx.getImageData(0,0,s.canvas.width,s.canvas.height));
-  const path=new Path2D(); path.moveTo(poly.left[0].x, poly.left[0].y);
-  poly.left.slice(1).forEach(p=>path.lineTo(p.x,p.y)); path.closePath();
-  const imgData=s.ctx.getImageData(0,0,s.canvas.width,s.canvas.height);
-  const data=imgData.data; const W=s.canvas.width, H=s.canvas.height;
-  for(let y=0;y<H;y++){
-    for(let x=0;x<W;x++){
-      if(s.ctx.isPointInPath(path,x,y)){
-        const i=(y*W+x)*4;
-        data[i]=255-data[i]; data[i+1]=255-data[i+1]; data[i+2]=255-data[i+2];
+function initParticles() {
+  particles = [];
+  const cols = Math.ceil(W / 28);
+  const rows = Math.ceil(H / 28);
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      if (Math.random() > 0.88) {
+        particles.push({
+          x: c * 28 + Math.random() * 28,
+          y: r * 28 + Math.random() * 28,
+          char: String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96)),
+          alpha: Math.random() * 0.5 + 0.1,
+          speed: Math.random() * 0.4 + 0.1,
+          timer: Math.random() * 200
+        });
       }
     }
   }
-  s.ctx.putImageData(imgData,0,0);
-  clearPolyOverlay(s);
-  closeReady=false;
-}
-function undoInversion(){
-  if(!lockActive) return;
-  const img = invHist.left.pop();
-  if(img) left.ctx.putImageData(img,0,0);
-}
-btnInvUndo.addEventListener('click', undoInversion);
-
-/* ======= Reset/Limpar ======= */
-function clearPins(s){ s.pins.forEach(p=>p.remove()); s.pins=[]; }
-function resetCounters(){ countC.textContent='0'; countI.textContent='0'; countR.textContent='0'; countPo.textContent='0'; countCr.textContent='0'; }
-function resetTransforms(){ [left,right].forEach(s=>{ fitCover(s); }); rotateSliderL.value='0'; rotateValL.textContent='0°'; rotateSliderR.value='0'; rotateValR.textContent='0°'; }
-
-/* Apagar marcações (mantém imagens) e deixa "C" ativo se o lock estiver ligado */
-function doReset(){
-  clearPins(left); clearPins(right); pinHistory.length=0; pinsHidden=false; resetCounters(); updateLegend();
-  poly.left.length=0; clearPolyOverlay(left);
-  [left,right].forEach(s=>{ s.rot=0; }); resetTransforms();
-
-  if(lockActive){
-    currentType='common';
-    sizeSel.value='medium';
-    setMode('pin','common'); // mantém C ativo
-  }else{
-    setMode(null);
-  }
 }
 
-function wipeAll(){
-  doReset();
-  setLock(false);
-  initSideBlack(left); 
-  initSideBlack(right);
-  updateLabels();
-  markerName.value = ''; // limpa o nome do vestígio
-}
-btnReset.addEventListener('click', doReset);
-btnWipe.addEventListener('click', () => {
-  const sure = window.confirm('Tem certeza que deseja apagar tudo?');
-  if (sure) wipeAll();
-});
-
-/* ======= Export ======= */
-function cssNum(v){ return parseInt(getComputedStyle(document.documentElement).getPropertyValue(v).replace('px','')||'0',10) || 0; }
-function clipToViewport(ctx, s){
-  const sr = stage.getBoundingClientRect();
-  const vr = s.vp.getBoundingClientRect();
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(vr.left - sr.left, vr.top - sr.top, vr.width, vr.height);
-  ctx.clip();
-  return { sr, vr };
-}
-function drawSideCanvas(ctx, s){
-  const { sr, vr } = clipToViewport(ctx, s);
-  const offX = (vr.left - sr.left);
-  const offY = (vr.top  - sr.top);
-  const cx = s.imgW/2, cy = s.imgH/2;
-
-  ctx.save();
-  ctx.translate(offX + s.tx, offY + s.ty);
-  ctx.translate(cx, cy);
-  ctx.rotate(s.rot);
-  ctx.scale(s.scale, s.scale);
-  ctx.translate(-cx, -cy);
-  ctx.drawImage(s.canvas, 0, 0);
-  ctx.restore();
-
-  ctx.restore();
-}
-function pinVisualRadius(sizeClass){ const rMap = { small:7, medium:10, large:13 }; return rMap[sizeClass] || 10; }
-function drawPinStyled(ctx, x, y, r, type, index){
-  let fill, border, txt;
-  if(type==='common'){
-    fill = '--pin-red';
-    border = '--pin-border';
-    txt = '--num-white';
-  } else if(type==='incommon'){
-    fill = '--pin-blue';
-    border = '--pin-border';
-    txt = '--num-white';
-  } else if(type==='rare'){
-    fill = '--pin-gold';
-    border = '--pin-border';
-    txt = '--num-black';
-  } else if(type==='poros' || type==='cristas'){
-    fill = 'transparent';
-    border = '--neon';
-    txt = '--num-white';
-  }
-
-  fill = (fill.startsWith('--')) ? getComputedStyle(document.documentElement).getPropertyValue(fill).trim() : fill;
-  border = (border.startsWith('--')) ? getComputedStyle(document.documentElement).getPropertyValue(border).trim() : border;
-  txt = (txt.startsWith('--')) ? getComputedStyle(document.documentElement).getPropertyValue(txt).trim() : txt;
-
-  const isTriangle = type === 'cristas';
-
-  ctx.save();
-  ctx.beginPath();
-  if(isTriangle){
-    // Triângulo equilateral pointing up, centrado
-    const side = r * 2;
-    const height = side * (Math.sqrt(3) / 2);
-    const centroidY = height / 3;
-    ctx.moveTo(x, y - (height - centroidY));
-    ctx.lineTo(x - side / 2, y + centroidY);
-    ctx.lineTo(x + side / 2, y + centroidY);
-    ctx.closePath();
-  } else {
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-  }
-  if(fill !== 'transparent'){
-    ctx.fillStyle = fill;
-    ctx.fill();
-  }
-  ctx.lineWidth = 1.2;
-  ctx.strokeStyle = border;
-  ctx.stroke();
-
-  ctx.font = `500 ${Math.round(r * 1.2)}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = txt;
-  ctx.fillText(String(index), x, y);
-  ctx.restore();
-}
-function drawPins(ctx, s){
-  const { sr, vr } = clipToViewport(ctx, s);
-  const offX = (vr.left - sr.left);
-  const offY = (vr.top  - sr.top);
-  const cx = s.imgW/2, cy = s.imgH/2;
-  const rotDeg = rad2deg(s.rot);
-
-  let m = new DOMMatrix()
-    .translate(offX + s.tx, offY + s.ty)
-    .translate(cx, cy)
-    .rotate(rotDeg)
-    .scale(s.scale, s.scale)
-    .translate(-cx, -cy);
-
-  s.pins.forEach((p,i)=>{
-    const ix = parseFloat(p.dataset.ix), iy=parseFloat(p.dataset.iy);
-    const pt = new DOMPoint(ix, iy).matrixTransform(m);
-    const r = pinVisualRadius(p.dataset.size || 'medium');
-    drawPinStyled(ctx, pt.x, pt.y, r, p.dataset.type, i+1);
-  });
-
-  ctx.restore();
-}
-async function compose(includePins){
-  const sr = stage.getBoundingClientRect();
-  const W = Math.round(sr.width), H = Math.round(sr.height);
-  const FRAME = cssNum('--frame');
-  const CLW   = cssNum('--centerline');
-  const dpr = window.devicePixelRatio || 1;
-
-  const can = document.createElement('canvas');
-  can.width = Math.round(W * dpr); can.height = Math.round(H * dpr);
-  const ctx = can.getContext('2d');
-  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-  ctx.scale(dpr, dpr);
-
-  // fundo
-  ctx.fillStyle = getComputedStyle(stage).backgroundColor || '#0e0e0e';
-  ctx.fillRect(0,0,W,H);
-
-  // lados
-  drawSideCanvas(ctx, left);
-  drawSideCanvas(ctx, right);
-
-  // moldura
-  ctx.fillStyle='#fff';
-  ctx.fillRect(0,0,W,FRAME);
-  ctx.fillRect(0,H-FRAME,W,FRAME);
-  ctx.fillRect(0,0,FRAME,H);
-  ctx.fillRect(W-FRAME,0,FRAME,H);
-
-  // linha central
-  const cx = Math.round(W/2 - CLW/2);
-  ctx.fillRect(cx, FRAME, CLW, H-2*FRAME);
-
-  // pins + legenda
-  if(includePins && !pinsHidden){
-    drawPins(ctx, left);
-    drawPins(ctx, right);
-
-    if(legend.style.display !== 'none'){
-      const legCanvas = await html2canvas(legend,{backgroundColor:null,scale:dpr,logging:false,removeContainer:true});
-      const lr = legend.getBoundingClientRect();
-      const lx = (lr.left - sr.left);
-      const ly = (lr.top  - sr.top);
-      ctx.drawImage(legCanvas, lx, ly, legCanvas.width/dpr, legCanvas.height/dpr);
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = '13px "Share Tech Mono", monospace';
+  particles.forEach(p => {
+    p.timer++;
+    if (p.timer > 120 + Math.random() * 80) {
+      p.char = String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96));
+      p.timer = 0;
     }
-  }
-  return can;
+    const a = 0.1 + 0.5 * Math.abs(Math.sin(p.timer * 0.03));
+    ctx.fillStyle = `rgba(0,255,136,${a * p.alpha})`;
+    ctx.fillText(p.char, p.x, p.y + (p.timer * p.speed) % H);
+  });
+  requestAnimationFrame(draw);
 }
-function saveCanvas(can, filename, mime='image/jpeg', quality=0.95){
-  can.toBlob(b=>{
-    const url=URL.createObjectURL(b);
-    const a=document.createElement('a'); a.href=url; a.download=filename; a.click();
-    URL.revokeObjectURL(url);
-  }, mime, quality);
-}
-async function exportBoth(){
-  const name=(markerName.value||'imagem_marcada').trim();
-  let canvas = await compose(true);
-  saveCanvas(canvas, `${name} (marcação).jpg`, 'image/jpeg', 0.95);
-  canvas = await compose(false);
-  saveCanvas(canvas, `${name} (original).jpg`, 'image/jpeg', 0.95);
-}
-btnExport.addEventListener('click', exportBoth);
 
-/* ======= Inicial ======= */
-setLock(false);
-updateLockUI();
-applyAxisThickness();
-updateLegend(); updateCounters();
-stage.addEventListener('mouseleave', ()=>setHighlight(-1));
+resize();
+initParticles();
+draw();
+window.addEventListener('resize', () => { resize(); initParticles(); });
 </script>
 </body>
 </html>
