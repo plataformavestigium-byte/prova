@@ -196,7 +196,7 @@
   <div class="header">
     <h1>
       <span aria-hidden="true" style="font-size:22px">🔍</span>
-      Marcador de Minúcias v.1.16
+      Plataforma Vestigium
     </h1>
   </div>
 
@@ -443,6 +443,19 @@ function fitCover(s){
   applyTransform(s);
 }
 
+/* ======= Ajuste automático ao monitor ======= */
+function fitToViewport(){
+  const sideOverhead = 310; // guia 240 + gap + padding + scrollbar
+  const vertOverhead = 200; // controles + margens
+  const ASPECT = 880 / 980;
+  let vw = Math.max(360, Math.floor((window.innerWidth - sideOverhead) / 2));
+  let vh = Math.floor(vw * ASPECT);
+  const availH = Math.max(300, window.innerHeight - vertOverhead);
+  if(vh > availH){ vh = availH; vw = Math.max(360, Math.floor(vh / ASPECT)); }
+  document.documentElement.style.setProperty('--view-w', vw + 'px');
+  document.documentElement.style.setProperty('--view-h', vh + 'px');
+}
+
 /* ======= Inicial preto ======= */
 function initSideBlack(s){
   s.img=null; s.imgW=s.vp.clientWidth; s.imgH=s.vp.clientHeight;
@@ -453,6 +466,7 @@ function initSideBlack(s){
   s.pinsLayer.style.width=s.imgW+'px'; s.pinsLayer.style.height=s.imgH+'px';
   s.scale=1; s.rot=0; s.tx=(s.vp.clientWidth-s.imgW)/2; s.ty=(s.vp.clientHeight-s.imgH)/2; applyTransform(s);
 }
+fitToViewport();
 initSideBlack(left); initSideBlack(right);
 updateLabels();
 
@@ -474,8 +488,13 @@ function freezeCanvasTo100(){
   stageFreeze.style.height = h + 'px';
 }
 freezeCanvasTo100();
-window.visualViewport && window.visualViewport.addEventListener('resize', freezeCanvasTo100);
-window.addEventListener('resize', freezeCanvasTo100);
+function handleResize(){
+  fitToViewport();
+  freezeCanvasTo100();
+  [left, right].forEach(s=>{ if(s.img) fitCover(s); else initSideBlack(s); });
+}
+window.visualViewport && window.visualViewport.addEventListener('resize', handleResize);
+window.addEventListener('resize', handleResize);
 
 /* ======= UI lock ======= */
 function updateLockUI(){
