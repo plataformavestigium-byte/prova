@@ -162,8 +162,13 @@
 
   .highlight{ background:var(--neon) !important; color:#111 !important; }
 
-  /* Export centralizado logo abaixo do canva */
-  #exportWrap{ margin-top:12px; text-align:center; }
+  .btn-export{background:#1a7a3c;border-color:#1a7a3c}
+  .btn-export:hover{background:#228a47}
+
+  #vestigiumLogo{
+    position:absolute; bottom:0; left:0; width:100%; height:auto;
+    pointer-events:none; z-index:20; display:block;
+  }
 
   .mode-invert .viewport{ cursor: crosshair }
   .mode-pin    .viewport{ cursor: crosshair }
@@ -271,6 +276,7 @@
         <div class="spacer"></div>
         <button id="btnReset" class="btn-reset" title="Limpa marcações e zoom/pan; mantém imagens">Apagar marcações</button>
         <button id="btnWipe"  class="btn-wipe"  title="Remove as imagens do canvas">Limpar tela</button>
+        <button id="btnExport" class="btn-export" title="Exportar imagem marcada e original">Exportar imagem</button>
       </div>
     </div>
 
@@ -304,6 +310,7 @@
                 <div id="pinsL" class="pins"></div>
               </div>
             </div>
+            <img id="vestigiumLogo" src="Plataforma_Vestigium.png" alt="Plataforma Vestigium">
           </div>
 
           <div id="right" class="side">
@@ -320,8 +327,6 @@
           <div id="legend"><div class="content" id="legendContent"></div></div>
         </div>
 
-        <!-- Botão export centralizado abaixo do canva -->
-        <div id="exportWrap"><button id="btnExport">Exportar (marcada & original)</button></div>
       </div>
     </div>
   </div>
