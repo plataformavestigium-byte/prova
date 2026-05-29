@@ -124,8 +124,8 @@
   .side-label:hover{ filter:brightness(1.08) }
   #labelRight{right:calc(var(--frame) + 12px);left:auto}
 
-  .guia-col{width:240px;flex:0 0 240px}
-  .guia-minucias{background:#232323;border-radius:14px;box-shadow:0 2px 10px #0007;padding:10px;display:flex;flex-direction:column;align-items:center;position:sticky;top:12px}
+  .guia-col{width:240px;flex:0 0 240px;display:flex;flex-direction:column;align-self:stretch}
+  .guia-minucias{background:#232323;border-radius:14px;box-shadow:0 2px 10px #0007;padding:10px;display:flex;flex-direction:column;align-items:center}
   .guia-minucias img{width:100%;border-radius:10px;box-shadow:0 1px 8px #0009;display:block}
 
   /* Legenda colada, sem borda/raio/sombra */
@@ -166,8 +166,9 @@
   .btn-export:hover{background:#228a47}
 
   #vestigiumLogo{
-    position:absolute; bottom:0; left:0; width:100%; height:auto;
-    pointer-events:none; z-index:20; display:block;
+    display:block; width:100%; height:auto;
+    margin-top:auto; padding-top:12px;
+    border-radius:8px;
   }
 
   .mode-invert .viewport{ cursor: crosshair }
@@ -285,6 +286,7 @@
         <div class="guia-minucias">
           <img src="https://raw.githubusercontent.com/rodrigo-mbarros-pages/Guia/refs/heads/main/Guia%20de%20min%C3%BAcias.png" alt="Guia de Minúcias">
         </div>
+        <img id="vestigiumLogo" src="Plataforma_Vestigium.png" alt="Plataforma Vestigium">
       </aside>
 
       <!-- wrapper que neutraliza o zoom do navegador -->
@@ -310,7 +312,6 @@
                 <div id="pinsL" class="pins"></div>
               </div>
             </div>
-            <img id="vestigiumLogo" src="Plataforma_Vestigium.png" alt="Plataforma Vestigium">
           </div>
 
           <div id="right" class="side">
