@@ -68,7 +68,7 @@
   .pin-tool.active.incommon{background:var(--pin-blue);color:#fff;border-color:var(--pin-border)}
   .pin-tool.active.rare{background:var(--pin-gold);color:#111;border-color:var(--pin-border)}
   .pin-tool.active.poros{background:var(--pin-neon);color:#111;border-color:var(--pin-border)}
-  .pin-tool.active.cristas{background:var(--pin-neon);color:#111;border-color:var(--pin-border)}
+  .pin-tool.active.cristas{background:var(--tracker);color:#111;border-color:var(--tracker)}
 
   input[type="text"].white{
     height:36px;background:#ffffff;border:1px solid #bbb;color:#111;border-radius:8px;padding:0 12px;min-width:360px
@@ -156,7 +156,7 @@
   .incommon{background:var(--pin-blue); color:var(--num-white);}
   .rare{background:var(--pin-gold); color:var(--num-black);}
   .poros{background:transparent; color:var(--num-white); border-color:var(--neon);}
-  .cristas{background:transparent; color:var(--num-white); border-color:var(--neon); border-radius:0; clip-path: polygon(50% 0%, 0% 100%, 100% 100%);}
+  .cristas{background:var(--tracker); color:#111; border-color:var(--tracker);}
 
   .highlight{ background:var(--neon) !important; color:#111 !important; }
 
@@ -764,7 +764,14 @@ function deletePairByIndex(i){
 document.addEventListener('contextmenu', e=>e.preventDefault());
 btnUndo.addEventListener('click', undoPin);
 btnTogglePins.addEventListener('click', ()=>{ if(!lockActive) return; pinsHidden=!pinsHidden; [...left.pins,...right.pins].forEach(p=>p.style.display=pinsHidden?'none':''); });
-sizeSel.addEventListener('input', ()=> currentSize = ['small','medium','large'][sizeSel.value-1] );
+sizeSel.addEventListener('input', ()=> {
+  currentSize = ['small','medium','large'][sizeSel.value-1];
+  [...left.pins, ...right.pins].forEach(p => {
+    p.classList.remove('small','medium','large');
+    p.classList.add(currentSize);
+    p.dataset.size = currentSize;
+  });
+});
 
 /* ======= Modos & atalhos ======= */
 function setMode(newMode, pinType=null){
@@ -1089,17 +1096,21 @@ function drawPinStyled(ctx, x, y, r, type, index){
     fill = '--pin-gold';
     border = '--pin-border';
     txt = '--num-black';
-  } else if(type==='poros' || type==='cristas'){
+  } else if(type==='poros'){
     fill = 'transparent';
     border = '--neon';
     txt = '--num-white';
+  } else if(type==='cristas'){
+    fill = '--tracker';
+    border = '--tracker';
+    txt = '--num-black';
   }
 
   fill = (fill.startsWith('--')) ? getComputedStyle(document.documentElement).getPropertyValue(fill).trim() : fill;
   border = (border.startsWith('--')) ? getComputedStyle(document.documentElement).getPropertyValue(border).trim() : border;
   txt = (txt.startsWith('--')) ? getComputedStyle(document.documentElement).getPropertyValue(txt).trim() : txt;
 
-  const isTriangle = type === 'cristas';
+  const isTriangle = false;
 
   ctx.save();
   ctx.beginPath();
